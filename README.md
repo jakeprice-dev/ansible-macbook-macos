@@ -1,17 +1,33 @@
 # MacBook Pro Big Sur Initial Configuration Playbook
 
-## Install Ansible
+Open up the default Terminal, and type `pip3`. This will then prompt you to install `Command Line Developer Tools`.
 
-Install Ansible.
+Next, change the default shell to Bash (from Zsh):
 
 ```sh
-pip3 install --user ansible
+chsh -s /bin/bash
+```
+
+Next, upgrade pip.
+
+```sh
+pip3 install --user --upgrade pip3
+```
+
+Restart the terminal, and then proceed with the next steps.
+
+## Install Ansible
+
+Install Ansible using the command below.
+
+```sh
+python3 -m pip install --user ansible
 ```
 
 You may need to add the below PATH to `.bashrc`, if running `ansible` doesn't work straight away, as Ansible get's installed there.
 
 ```sh
-export PATH="/Users/jpr/Library/Python/3.9/bin:$PATH"
+export PATH="/Users/jpr/Library/Python/3.*/bin:$PATH"
 ```
 
 ## Install Homebrew
