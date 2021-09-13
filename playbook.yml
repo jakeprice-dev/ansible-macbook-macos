@@ -4,9 +4,13 @@
   connection: local
   vars_files:
     - flags.yml
-    - vault.yml
+#    - vault.yml
 
   tasks:
+
+    - name: Set hostname
+      hostname:
+        name: mbp
 
     - name: Install Ansible Module's
       ansible.builtin.command: 
@@ -15,53 +19,58 @@
         - { cmd: ansible-galaxy collection install community.general }
       when: download_galaxy == true
 
-    - name: Download Logitech Options for MacOS
+    - name: Download Custom Apps for MacOS
       get_url:
         url: "{{ item.url }}"
         dest: ~/Downloads
       with_items:
         - { url: "https://downloads.corsair.com/Files/CUE/iCUE-3.38.61-release.dmg" } # Corsair iCue
         - { url: "https://download01.logi.com/web/ftp/pub/techsupport/options/Options_8.54.147.zip" } # Logitech Options
-        - { url: "https://www.displaylink.com/downloads/file?id=1715" } # DisplayLink
       when: download_apps == true
+
+    - name: Add Homebrew Taps
+      community.general.homebrew_tap:
+        name: 
+          - federico-terzi/espanso
+          - homebrew/cask-fonts
+        state: present
 
     - name: Install Homebrew Packages
       community.general.homebrew:
         state: latest
         name:
-          - awscli
           - bash # Add latest version of Bash
           - bash-completion
           - bat
           - coreutils # Replace MacOS provided version of ls, etc
           - curl
-          - docker-compose
           - dos2unix
           - espanso
+          - findutils 
           - fzf
+          - gawk
           - git
-          - glow
-          - graphviz
+          - gnu-sed
+          - gnu-tar
+          - grep
+          - hledger
           - htop
           - hugo
-          - ipcalc
           - jq
+          - make
           - nmap
+          - openssh
           - p7zip
-          - packer
-          - packer-completion
           - pandoc
           - python
           - qrencode
-          - switchaudio-osx # Allows for CLI switching between audio (helps
-          # resolve issue with Corsair Void headset randomly stopping as I can run
-          # an alias to quickly switch back and forth between devices which fixes
-          # the issue).
-          - terraform
+          - rename
+          - shellcheck
+          - svn
+          - switchaudio-osx 
           - tmux
           - tree
           - unzip
-          - vim
           - wget
       when: run_homebrew_packages == true
 
@@ -69,26 +78,24 @@
       community.general.homebrew_cask:
         state: latest
         accept_external_apps: yes
-        sudo_password: "{{ vault_sudo_password }}"
         name:
           - homebrew/cask/android-commandlinetools
           - homebrew/cask/chromium
-          - homebrew/cask/cyberduck
-          - homebrew/cask/dbeaver-community
-          - homebrew/cask/docker
           - homebrew/cask/drawio
           - homebrew/cask/firefox
-          - homebrew/cask/flameshot
-          - homebrew/cask/foxitreader
-          - homebrew/cask/google-chrome
-          - homebrew/cask/iglance
           - homebrew/cask/iterm2
           - homebrew/cask/keepassxc
-          - homebrew/cask/licecap
           - homebrew/cask/macvim
           - homebrew/cask/rectangle
-          - homebrew/cask/vscodium
+          - homebrew/cask/telegram
+          # Fonts:
+          - homebrew/cask/font-rubik
+          - homebrew/cask/font-ubuntu-mono
       when: run_homebrew_casks == true
+
+    - name: Install Rosetta
+      shell:
+        cmd: /usr/sbin/softwareupdate --install-rosetta --agree-to-license
 
     - name: Install Python packages
       pip:
@@ -115,6 +122,61 @@
         owner: jpr
         group: staff
 
+    - name: Create folders
+      file:
+        path: "~/{{ item.path }}"
+        state: directory
+        owner: jpr
+        group: staff
+        recurse: yes
+      with_items:
+        - { path: .config/espanso }
+
+    - name: Create folders
+      file:
+        dest: "{{ item.dest }}"
+        state: directory
+      with_items:
+        - { dest: ~/.ssh }
+
+    - name: Download fonts and additional packages
+      unarchive:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: jpr
+        group: staff
+        remote_src: yes
+      with_items:
+        - { src: https://assets.ubuntu.com/v1/0cef8205-ubuntu-font-family-0.83.zip, dest: /tmp }
+
+    - name: Create symbolic links
+      file:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        state: link
+      with_items:
+          - { src: "/Volumes/my", dest: ~/my }
+
+    - name: Remove existing dotfiles and other config files
+      file:
+         path: "{{ item.path }}"
+         state: absent
+      with_items:
+         - { path: ~/.config/espanso/user }
+
+    - name: Add dotfiles and other config files
+      file:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: jpr
+        group: staff
+        state: link
+      with_items:
+        - { src: "/Volumes/my/files/code/dotfiles/bashrc", dest: "~/.bashrc", force: no }
+        - { src: "/Volumes/my/files/code/dotfiles/tmux.conf", dest: "~/.tmux.conf", force: no }
+        - { src: "/Volumes/my/files/code/dotfiles/vimrc", dest: "~/.vimrc", force: no }
+        - { src: "/Volumes/my/files/code/espanso/user", dest: "~/.config/espanso/user" }
+
     - name: Global prefs
       osx_defaults:
         key: "{{ item.key }}"
@@ -124,8 +186,8 @@
         - { key: NSNavPanelExpandedStateForSaveMode, type: bool, value: true } # Expand when saving
         - { key: NSAutomaticTextCompletionEnabled, type: bool, value: false } # Disable touchbar typing suggestions
         - { key: NSAutomaticPeriodSubstitutionEnabled, type: bool, value: false } # Disable period after double space
-        - { key: KeyRepeat, type: int, value: 2}
-        - { key: AppleShowAllExtensions, type: bool, value: true}
+        - { key: KeyRepeat, type: int, value: 2 }
+        - { key: AppleShowAllExtensions, type: bool, value: true }
         - { key: AppleKeyboardUIMode, type: int, value: 3 } # Enable tab to all controls
 
     - name: Trackpad preferences
@@ -237,99 +299,68 @@
         type: string
         value: clipboard
 
-    - name: Add Hugo log builds to crontab
-      cron:
-        name: Hugo Log Builds
-        minute: "*/5"
-        hour: "*"
-        job: 'rm -rf ~/onedrive/log/public && /usr/local/bin/hugo --source ~/onedrive/log/ >> /tmp/"$(date +\%Y\%m\%d\%H\%M\%S)"_log_build.log 2>&1'
-
-    - name: Create symbolic links
-      file:
-        src: "{{ item.src }}"
-        dest: "{{ item.dest }}"
-        state: link
-      with_items:
-          - { src: "", dest: ~/.ssh/config }
-          - { src: "", dest: ~/log }
-
-    - name: Add dotfiles and other config files
-      file:
-        src: "{{ item.src }}"
-        dest: "{{ item.dest }}"
-        owner: jpr
-        group: staff
-        state: link
-        force: "{{ item.force }}"
-      with_items:
-        - { src: "", dest: "~/.bashrc", force: no }
-        - { src: "", dest: "~/.tmux.conf", force: no }
-        - { src: "", dest: "~/.vimrc", force: no }
-        - { src: "", dest: "/Users/jpr/Library/Preferences/espanso/user", force: no }
-
     - name: Update list of available shells
       blockinfile:
         path: /private/etc/shells
-        marker: "# **** Ansible Managed Block ****"
-        block: "/usr/local/bin/bash"
+        block: "/opt/homebrew/bin/bash"
       become: true
 
     - name: Update default shell
       shell:
-        cmd: chpass -s /usr/local/bin/bash
-      become_user: jprice
+        cmd: chpass -s /opt/homebrew/bin/bash
+      become_user: jpr
 
-    - name: Custom Firefox about:config settings
-      copy:
-        dest: /Users/jpr/Library/Application Support/Firefox/Profiles/q06115kh.default-release/user.js
-        mode: 0644
-        content: |
-          user_pref("browser.aboutHomeSnippets.updateUrl", "");
-          user_pref("browser.compactmode.show", true);
-          user_pref("browser.discovery.enabled", false);
-          user_pref("browser.download.useDownloadDir", false);
-          user_pref("browser.fixup.alternate.enabled", false);
-          user_pref("browser.formfill.enable", false);
-          user_pref("browser.formfill.expire_days",	0);
-          user_pref("browser.helperApps.deleteTempFileOnExit", true);
-          user_pref("browser.newtab.preload", false);
-          user_pref("browser.newtab.url", "about:blank");
-          user_pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr", false);
-          user_pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons", false);
-          user_pref("browser.newtabpage.activity-stream.enabled", false);
-          user_pref("browser.newtabpage.activity-stream.feeds.section.topstories", false);
-          user_pref("browser.newtabpage.activity-stream.feeds.snippets", false);
-          user_pref("browser.newtabpage.directory.ping", "");
-          user_pref("browser.newtabpage.directory.source", "data:text/plain,{}");
-          user_pref("browser.newtabpage.enabled", false);
-          user_pref("browser.newtabpage.enhanced", false);
-          user_pref("browser.pocket.enabled", false);
-          user_pref("browser.search.context.loadInBackground", true);
-          user_pref("browser.search.update", false);
-          user_pref("browser.startup.homepage", "https://start.ark.lan");
-          user_pref("browser.tabs.loadBookmarksInBackground", true);
-          user_pref("browser.tabs.loadBookmarksInTabs", true);
-          user_pref("browser.uidensity", 1);
-          user_pref("browser.uitour.enabled", false);
-          user_pref("browser.uitour.enabled", false);
-          user_pref("browser.urlbar.trimURLs", false);
-          user_pref("clipboard.autocopy", false);
-          user_pref("datareporting.healthreport.service.enabled", false);
-          user_pref("datareporting.healthreport.uploadEnabled", false);
-          user_pref("datareporting.policy.dataSubmissionEnabled", false);
-          user_pref("dom.event.clipboardevents.enabled", false);
-          user_pref("dom.event.contextmenu.enabled", true);
-          user_pref("experiments.enabled", false);
-          user_pref("experiments.manifest.uri", "");
-          user_pref("experiments.supported", false);
-          user_pref("extensions.pocket.enabled", false);
-          user_pref("layout.word_select.eat_space_to_next_word", false);
-          user_pref("mousewheel.min_line_scroll_amount", 45);
-          user_pref("network.allow-experiments", false);
-          user_pref("privacy.trackingprotection.enabled", true);
-          user_pref("privacy.trackingprotection.pbmode.enabled", true);
-          user_pref("signon.rememberSignons", false);
-          user_pref("toolkit.telemetry.archive.enabled", false);
-          user_pref("toolkit.telemetry.enabled", false);
-          user_pref("toolkit.telemetry.unified", false);
-
+#    - name: Custom Firefox about:config settings
+#      copy:
+#        dest: /Users/jpr/Library/Application Support/Firefox/Profiles/gce4f4u6.default-release/user.js
+#        mode: 0644
+#        content: |
+#          user_pref("browser.aboutHomeSnippets.updateUrl", "");
+#          user_pref("browser.compactmode.show", true);
+#          user_pref("browser.discovery.enabled", false);
+#          user_pref("browser.download.useDownloadDir", false);
+#          user_pref("browser.fixup.alternate.enabled", false);
+#          user_pref("browser.formfill.enable", false);
+#          user_pref("browser.formfill.expire_days",	0);
+#          user_pref("browser.helperApps.deleteTempFileOnExit", true);
+#          user_pref("browser.newtab.preload", false);
+#          user_pref("browser.newtab.url", "about:blank");
+#          user_pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr", false);
+#          user_pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons", false);
+#          user_pref("browser.newtabpage.activity-stream.enabled", false);
+#          user_pref("browser.newtabpage.activity-stream.feeds.section.topstories", false);
+#          user_pref("browser.newtabpage.activity-stream.feeds.snippets", false);
+#          user_pref("browser.newtabpage.directory.ping", "");
+#          user_pref("browser.newtabpage.directory.source", "data:text/plain,{}");
+#          user_pref("browser.newtabpage.enabled", false);
+#          user_pref("browser.newtabpage.enhanced", false);
+#          user_pref("browser.pocket.enabled", false);
+#          user_pref("browser.search.context.loadInBackground", true);
+#          user_pref("browser.search.update", false);
+#          user_pref("browser.startup.homepage", "https://start.ark.lan");
+#          user_pref("browser.tabs.loadBookmarksInBackground", true);
+#          user_pref("browser.tabs.loadBookmarksInTabs", true);
+#          user_pref("browser.uidensity", 1);
+#          user_pref("browser.uitour.enabled", false);
+#          user_pref("browser.uitour.enabled", false);
+#          user_pref("browser.urlbar.trimURLs", false);
+#          user_pref("clipboard.autocopy", false);
+#          user_pref("datareporting.healthreport.service.enabled", false);
+#          user_pref("datareporting.healthreport.uploadEnabled", false);
+#          user_pref("datareporting.policy.dataSubmissionEnabled", false);
+#          user_pref("dom.event.clipboardevents.enabled", false);
+#          user_pref("dom.event.contextmenu.enabled", true);
+#          user_pref("experiments.enabled", false);
+#          user_pref("experiments.manifest.uri", "");
+#          user_pref("experiments.supported", false);
+#          user_pref("extensions.pocket.enabled", false);
+#          user_pref("layout.word_select.eat_space_to_next_word", false);
+#          user_pref("mousewheel.min_line_scroll_amount", 45);
+#          user_pref("network.allow-experiments", false);
+#          user_pref("privacy.trackingprotection.enabled", true);
+#          user_pref("privacy.trackingprotection.pbmode.enabled", true);
+#          user_pref("signon.rememberSignons", false);
+#          user_pref("toolkit.telemetry.archive.enabled", false);
+#          user_pref("toolkit.telemetry.enabled", false);
+#          user_pref("toolkit.telemetry.unified", false);
+#

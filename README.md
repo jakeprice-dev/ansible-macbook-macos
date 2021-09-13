@@ -1,4 +1,20 @@
-# MacBook Pro Big Sur Initial Configuration Playbook
+# MacBook Pro Apple Silicon Initial Configuration Playbook for Big Sur
+
+## Mount Samba Share
+
+Open **Finder**, and press `⌘ K` to open the "Connect to Server" window. Enter `smb://10.0.0.80/my` and click `Connect`.
+
+![](images/connect_to_server.png)
+
+Confirm the attempt to connect.
+
+![](images/attempt_to_connect.png)
+
+Then enter credentials for the share.
+
+![](images/credentials.png)
+
+## Preparation
 
 Open up the default Terminal, and type `pip3`. This will then prompt you to install `Command Line Developer Tools`.
 
@@ -69,5 +85,6 @@ run_pip: true
 ## Run Playbook
 
 ```sh
-ansible-playbook playbook.yml
+ansible-playbook --ask-become-pass playbook.yml
 ```
+
