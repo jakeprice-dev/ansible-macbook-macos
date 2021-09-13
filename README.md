@@ -4,15 +4,15 @@
 
 Open **Finder**, and press `⌘ K` to open the "Connect to Server" window. Enter `smb://10.0.0.80/my` and click `Connect`.
 
-![](images/connect_to_server.png)
+<img src="images/connect_to_server.png" width="30%">
 
 Confirm the attempt to connect.
 
-![](images/attempt_to_connect.png)
+<img src="images/attempt_to_connect.png" width="20%">
 
 Then enter credentials for the share.
 
-![](images/credentials.png)
+<img src="images/credentials.png" width="30%">
 
 ## Preparation
 
