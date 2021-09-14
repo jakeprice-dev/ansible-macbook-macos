@@ -1,6 +1,6 @@
-# MacBook Pro Apple Silicon Initial Configuration Playbook for Big Sur
+# Ansible Playbook for Initial Configuration of MacOS Big Sur on Apple Silicon
 
-These instructions are specific to my own device and infrastructure, but feel free to adapt to your own needs.
+Bare in mind these instructions are specific to my own device and infrastructure. Regardless of that, do feel free to adapt this repository to your own needs.
 
 ## Mount Samba Share
 
