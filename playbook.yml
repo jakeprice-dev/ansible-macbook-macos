@@ -4,7 +4,6 @@
   connection: local
   vars_files:
     - flags.yml
-#    - vault.yml
 
   tasks:
 
@@ -82,14 +81,16 @@
           - homebrew/cask/chromium
           - homebrew/cask/drawio
           - homebrew/cask/firefox
+          - homebrew/cask/hiddenbar
           - homebrew/cask/iterm2
           - homebrew/cask/keepassxc
+          - homebrew/cask/maccy
           - homebrew/cask/macvim
           - homebrew/cask/rectangle
           - homebrew/cask/telegram
           # Fonts:
-          - homebrew/cask/font-rubik
-          - homebrew/cask/font-ubuntu-mono
+          #- homebrew/cask/font-rubik
+          #- homebrew/cask/font-ubuntu-mono
       when: run_homebrew_casks == true
 
     - name: Install Rosetta
