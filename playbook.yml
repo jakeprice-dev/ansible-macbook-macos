@@ -31,7 +31,6 @@
     - name: Add Homebrew Taps
       community.general.homebrew_tap:
         name: 
-          - federico-terzi/espanso
           - homebrew/cask-fonts
         state: present
 
@@ -45,7 +44,6 @@
           - coreutils # Replace MacOS provided version of ls, etc
           - curl
           - dos2unix
-          - espanso
           - findutils 
           - fzf
           - gawk
