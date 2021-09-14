@@ -1,5 +1,7 @@
 # MacBook Pro Apple Silicon Initial Configuration Playbook for Big Sur
 
+These instructions are specific to my own device and infrastructure, but feel free to adapt to your own needs.
+
 ## Mount Samba Share
 
 Open **Finder**, and press `⌘ K` to open the "Connect to Server" window. Enter `smb://10.0.0.80/my` and click `Connect`.
