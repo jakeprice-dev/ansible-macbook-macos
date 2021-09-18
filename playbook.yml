@@ -70,6 +70,8 @@
           - tree
           - unzip
           - wget
+          - yarn # Required for MarkdownPreview Vim Plugin
+          - zbar
       when: run_homebrew_packages == true
 
     - name: Install Homebrew Casks
