@@ -37,12 +37,14 @@
       community.general.homebrew:
         state: latest
         name:
+          - ansible
           - bash # Add latest version of Bash
           - bash-completion
           - bat
           - coreutils # Replace MacOS provided version of ls, etc
           - curl
           - dos2unix
+          - fd
           - findutils 
           - fzf
           - gawk
@@ -68,8 +70,10 @@
           - switchaudio-osx 
           - tmux
           - tree
+          - unison
           - unzip
           - wget
+          - yamllint
           - yarn # Required for MarkdownPreview Vim Plugin
           - zbar
       when: run_homebrew_packages == true
@@ -86,6 +90,7 @@
           - homebrew/cask/hiddenbar
           - homebrew/cask/iterm2
           - homebrew/cask/keepassxc
+          - homebrew/cask/licecap
           - homebrew/cask/maccy
           - homebrew/cask/macvim
           - homebrew/cask/rectangle
@@ -102,7 +107,6 @@
     - name: Install Python packages
       pip:
         name:
-            - ansible
             - black
             - click
             - psutil
@@ -339,7 +343,7 @@
 #          user_pref("browser.pocket.enabled", false);
 #          user_pref("browser.search.context.loadInBackground", true);
 #          user_pref("browser.search.update", false);
-#          user_pref("browser.startup.homepage", "https://start.ark.lan");
+#          user_pref("browser.startup.homepage", "https://start.int.ppn.sh");
 #          user_pref("browser.tabs.loadBookmarksInBackground", true);
 #          user_pref("browser.tabs.loadBookmarksInTabs", true);
 #          user_pref("browser.uidensity", 1);
