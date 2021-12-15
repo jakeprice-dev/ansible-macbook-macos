@@ -1,4 +1,4 @@
-# Ansible Playbook for Initial Configuration of MacOS Big Sur on Apple Silicon
+# Ansible Playbook for MacOS
 
 ## Preparation
 
