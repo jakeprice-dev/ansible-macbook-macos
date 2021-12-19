@@ -55,6 +55,17 @@ run_homebrew_casks: false
 run_pip: true
 ```
 
+## Add Variables File
+
+Create `vars.yml`, and give the below variables values. 
+
+```sh
+firefox_start_page: <url>
+healthcheck_unison: <url>
+hostname: <hostname>
+personal_username: <username>
+```
+
 ## Run Playbook
 
 ```sh
