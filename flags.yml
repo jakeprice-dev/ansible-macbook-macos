@@ -10,5 +10,8 @@ run_homebrew_packages: false
 # Run Homebrew Casks:
 run_homebrew_casks: false
 
+# Run Homebrew Fonts:
+run_homebrew_fonts: false
+
 # Run Python pip:
 run_pip: false
