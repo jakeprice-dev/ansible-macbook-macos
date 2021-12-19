@@ -29,6 +29,13 @@
 #        - { url: "https://download01.logi.com/web/ftp/pub/techsupport/options/Options_8.54.147.zip" } # Logitech Options
 #      when: download_apps == true
 
+    - name: Add Homebrew Espanso tap
+      community.general.homebrew_tap:
+        name: 
+          - federico-terzi/espanso
+        state: present
+      when: run_homebrew_packages
+
     - name: Install Homebrew Packages
       community.general.homebrew:
         state: latest
@@ -38,6 +45,7 @@
           - bat
           - coreutils
           - curl
+          - espanso
           - fd
           - findutils 
           - fzf
@@ -84,6 +92,7 @@
           - homebrew/cask/macvim
           - homebrew/cask/rectangle
           - homebrew/cask/telegram
+          - homebrew/cask/thunderbird
       when: run_homebrew_casks
 
     - name: Add Homebrew fonts tap
