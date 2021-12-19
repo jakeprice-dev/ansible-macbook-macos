@@ -4,46 +4,40 @@
   connection: local
   vars_files:
     - flags.yml
+    - vars.yml
 
   tasks:
 
     - name: Set hostname
       hostname:
-        name: mbp
+        name: "{{ hostname }}"
+      become: yes
 
     - name: Install Ansible Module's
       ansible.builtin.command: 
         cmd: "{{ item.cmd }}"
       with_items:
         - { cmd: ansible-galaxy collection install community.general }
-      when: download_galaxy == true
+      when: download_galaxy
 
-    - name: Download Custom Apps for MacOS
-      get_url:
-        url: "{{ item.url }}"
-        dest: ~/Downloads
-      with_items:
-        - { url: "https://downloads.corsair.com/Files/CUE/iCUE-3.38.61-release.dmg" } # Corsair iCue
-        - { url: "https://download01.logi.com/web/ftp/pub/techsupport/options/Options_8.54.147.zip" } # Logitech Options
-      when: download_apps == true
-
-    - name: Add Homebrew Taps
-      community.general.homebrew_tap:
-        name: 
-          - homebrew/cask-fonts
-        state: present
+#    - name: Download Custom Apps for MacOS
+#      get_url:
+#        url: "{{ item.url }}"
+#        dest: ~/Downloads
+#      with_items:
+#        #- { url: "https://downloads.corsair.com/Files/CUE/iCUE-3.38.61-release.dmg" } # Corsair iCue
+#        - { url: "https://download01.logi.com/web/ftp/pub/techsupport/options/Options_8.54.147.zip" } # Logitech Options
+#      when: download_apps == true
 
     - name: Install Homebrew Packages
       community.general.homebrew:
         state: latest
         name:
-          - ansible
-          - bash # Add latest version of Bash
+          - bash
           - bash-completion
           - bat
-          - coreutils # Replace MacOS provided version of ls, etc
+          - coreutils
           - curl
-          - dos2unix
           - fd
           - findutils 
           - fzf
@@ -55,29 +49,22 @@
           - hledger
           - htop
           - hugo
-          - imagemagick
           - iproute2mac
           - jq
           - make
           - nmap
-          - openssh
           - p7zip
           - pandoc
           - python
           - qrencode
           - rename
           - shellcheck
-          - svn
-          - switchaudio-osx 
+          - svn # Dependency for installing `font-ubuntu-mono` below.
           - tmux
           - tree
-          - unison
           - unzip
           - wget
-          - yamllint
-          - yarn # Required for MarkdownPreview Vim Plugin
-          - zbar
-      when: run_homebrew_packages == true
+      when: run_homebrew_packages
 
     - name: Install Homebrew Casks
       community.general.homebrew_cask:
@@ -89,144 +76,248 @@
           - homebrew/cask/drawio
           - homebrew/cask/firefox
           - homebrew/cask/hiddenbar
-          - homebrew/cask/iterm2
           - homebrew/cask/karabiner-elements
           - homebrew/cask/keepassxc
+          - homebrew/cask/kitty
           - homebrew/cask/licecap
           - homebrew/cask/maccy
           - homebrew/cask/macvim
           - homebrew/cask/rectangle
           - homebrew/cask/telegram
-          # Fonts:
-          #- homebrew/cask/font-rubik
-          #- homebrew/cask/font-ubuntu-mono
-      when: run_homebrew_casks == true
+      when: run_homebrew_casks
+
+    - name: Add Homebrew fonts tap
+      community.general.homebrew_tap:
+        name: 
+          - homebrew/cask-fonts
+        state: present
+      when: run_homebrew_fonts
+
+    - name: Install Homebrew Fonts
+      community.general.homebrew_cask:
+        state: latest
+        accept_external_apps: yes
+        name:
+          - font-cabin
+          - font-exo
+          - font-exo-2
+          - font-fira-code
+          - font-fira-mono
+          - font-fira-sans
+          - font-inconsolata
+          - font-input
+          - font-jetbrains-mono
+          - font-lato
+          - font-literata
+          - font-nunito
+          - font-open-sans
+          - font-rubik
+          - font-ubuntu
+          - font-ubuntu-mono
+      when: run_homebrew_fonts
+
+    - name: Create local bin directory
+      file:
+        path: "{{ item.path }}"
+        state: directory
+        recurse: yes
+      with_items:
+        - { path: /usr/local/bin }
+      become: yes
+
+    - name: Download additional packages
+      unarchive:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: "{{ personal_username }}"
+        remote_src: yes
+      with_items:
+        - { src: "https://github.com/bcpierce00/unison/releases/download/v2.51.4/unison-v2.51.4+ocaml-4.12.0+x86_64.macos-10.15.tar.gz", dest: /tmp }
+
+    - name: Copy files
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        mode: 0755
+      with_items:
+        # Unison
+        - { src: /tmp/bin/unison, dest: /usr/local/bin/unison }
+      become: yes
 
     - name: Install Rosetta
-      shell:
-        cmd: /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+      command: /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+      register: rosetta_installed
+      changed_when: rosetta_installed.rc != 0
 
     - name: Install Python packages
       pip:
         name:
+            - ansible
+            - ansible-lint
             - black
             - click
+            - flake8
+            - jmespath
             - psutil
             - pylint
         extra_args: --user
-      when: run_pip == true
+      when: run_pip
 
     - name: Make vim-plug directory
       file:
         path: ~/.vim/autoload
-        owner: jpr
-        group: staff
+        owner: "{{ personal_username }}"
         recurse: yes      
     
     - name: Download Vim Plug
       get_url:
         url: https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
         dest: ~/.vim/autoload/plug.vim
-        owner: jpr
-        group: staff
+        owner: "{{ personal_username }}"
 
     - name: Create folders
       file:
-        path: "~/{{ item.path }}"
+        path: "{{ item.path }}"
         state: directory
-        owner: jpr
-        group: staff
+        owner: "{{ personal_username }}"
         recurse: yes
       with_items:
-        - { path: .config/espanso }
+        - { path: ~/.config/espanso }
+        - { path: ~/.ssh }
 
-    - name: Create folders
-      file:
-        dest: "{{ item.dest }}"
-        state: directory
-      with_items:
-        - { dest: ~/.ssh }
-
-    - name: Download fonts and additional packages
-      unarchive:
-        src: "{{ item.src }}"
-        dest: "{{ item.dest }}"
-        owner: jpr
-        group: staff
-        remote_src: yes
-      with_items:
-        - { src: https://assets.ubuntu.com/v1/0cef8205-ubuntu-font-family-0.83.zip, dest: /tmp }
-
-    - name: Create symbolic links
-      file:
-        src: "{{ item.src }}"
-        dest: "{{ item.dest }}"
-        state: link
-      with_items:
-          - { src: "/Volumes/my", dest: ~/my }
+    - name: Create .profile
+      copy:
+        dest: $HOME/.profile
+        mode: 0644
+        content: |
+          source $HOME/.bashrc
 
     - name: Remove existing dotfiles and other config files
       file:
          path: "{{ item.path }}"
          state: absent
       with_items:
-         - { path: ~/.config/espanso/user }
+         - { path: $HOME/.config/espanso/user }
+         - { path: $HOME/.bashrc }
+         - { path: $HOME/.vimrc }
+         - { path: $HOME/.tmux.conf }
+
+    - name: Create .code_root
+      copy:
+        dest: $HOME/.code_root
+        mode: 0644
+        content: |
+          CODE_ROOT=$HOME/my/files/code
 
     - name: Add dotfiles and other config files
       file:
         src: "{{ item.src }}"
         dest: "{{ item.dest }}"
-        owner: jpr
+        owner: "{{ personal_username }}"
         group: staff
         state: link
       with_items:
-        - { src: "/Volumes/my/files/code/dotfiles/bashrc", dest: "~/.bashrc", force: no }
-        - { src: "/Volumes/my/files/code/dotfiles/tmux.conf", dest: "~/.tmux.conf", force: no }
-        - { src: "/Volumes/my/files/code/dotfiles/vimrc", dest: "~/.vimrc", force: no }
-        - { src: "/Volumes/my/files/code/espanso/user", dest: "~/.config/espanso/user" }
+        - { src: "$HOME/my/files/code/dotfiles/bashrc", dest: "$HOME/.bashrc", force: no }
+        - { src: "$HOME/my/files/code/dotfiles/tmux.conf", dest: "$HOME/.tmux.conf", force: no }
+        - { src: "$HOME/my/files/code/dotfiles/vimrc", dest: "$HOME/.vimrc", force: no }
+        - { src: "$HOME/my/files/code/misc-config/vim/colors", dest: "$HOME/.vim/colors", force: no }
+        - { src: "$HOME/my/files/code/misc-config/kitty", dest: "$HOME/.config/kitty" }
+        - { src: "$HOME/my/files/code/misc-config/unison/default.prf", dest: "$HOME/Library/Application Support/Unison/default.prf" }
+        - { src: "$HOME/my/files/code/espanso-config/user", dest: "$HOME/.config/espanso/user" }
 
-    - name: Global prefs
-      osx_defaults:
-        key: "{{ item.key }}"
-        type: "{{ item.type }}"
-        value: "{{ item.value }}"
-      with_items:
-        - { key: NSNavPanelExpandedStateForSaveMode, type: bool, value: true } # Expand when saving
-        - { key: NSAutomaticTextCompletionEnabled, type: bool, value: false } # Disable touchbar typing suggestions
-        - { key: NSAutomaticPeriodSubstitutionEnabled, type: bool, value: false } # Disable period after double space
-        - { key: KeyRepeat, type: int, value: 2 }
-        - { key: AppleShowAllExtensions, type: bool, value: true }
-        - { key: AppleKeyboardUIMode, type: int, value: 3 } # Enable tab to all controls
+    - name: Symlink SSH directory
+      file:
+        src: $HOME/my/files/documents/vault/ssh
+        dest: $HOME/.ssh
+        owner: "{{ personal_username }}"
+        state: link
+        force: yes
 
-    - name: Trackpad preferences
-      osx_defaults:
-        domain: com.apple.AppleMultitouchTrackpad
-        key: "{{ item.key }}"
-        type: "{{ item.type }}"
-        value: "{{ item.value }}"
-      with_items:
-        - { key: ForceSuppressed, type: int, value: 1 } # Disable force click
-        - { key: Clicking, type: int, value: 1 } # Enable tap-to-click on touchpad
+    - name: Update list of available shells
+      blockinfile:
+        path: /private/etc/shells
+        block: "/opt/homebrew/bin/bash"
+      become: yes
 
-    - name: Accessibility preferences
-      osx_defaults:
-        domain: com.apple.Accessibility
-        key: "{{ item.key }}"
-        type: "{{ item.type }}"
-        value: "{{ item.value }}"
-      with_items:
-        - { key: KeyRepeatDelay, type: float, value: 0.5 }
-        - { key: KeyRepeatInterval, type: float, value: 0.083333333 }
+    - name: Update default shell
+      command: chpass -s /opt/homebrew/bin/bash
+      register: shell_changed
+      changed_when: shell_changed.rc != 0
+      become_user: "{{ personal_username }}"
+      become: yes
 
-    - name: Clock preferences
-      osx_defaults:
-        domain: com.apple.menuextra.clock
-        key: "{{ item.key }}"
-        type: "{{ item.type }}"
-        value: "{{ item.value }}"
-      with_items:
-        - { key: Show24Hour, type: int, value: 1 }
-        - { key: ShowDayOfWeek, type: int, value: 1 }
+    - name: Add regular Unison file syncs
+      ansible.builtin.cron:
+        name: "Unison Sync"
+        minute: "*/5"
+        hour: "*"
+        weekday: "*"
+        job: /opt/homebrew/bin/bash $HOME/my/files/code/bash-scripts/unison_my_sync.sh && curl --fail --silent --show-error --retry 5 --output /dev/null {{ healthcheck_unison }}
+
+    - name: Get Firefox default release profile name
+      find:
+        paths: "/Users/{{ personal_username }}/Library/Application Support/Firefox/Profiles/"
+        file_type: directory
+        patterns: '*.default-release'
+      register: firefox_profile
+
+    - name: Custom Firefox settings
+      copy:
+        dest: "{{ firefox_profile | json_query('files[*].path | [0]') | replace ('\"', '') }}/user.js"
+        mode: 0644
+        content: |
+          user_pref("browser.aboutConfig.showWarning", false);
+          user_pref("browser.aboutHomeSnippets.updateUrl", "");
+          user_pref("browser.compactmode.show", true);
+          user_pref("browser.discovery.enabled", false);
+          user_pref("browser.download.useDownloadDir", false);
+          user_pref("browser.fixup.alternate.enabled", false);
+          user_pref("browser.formfill.enable", false);
+          user_pref("browser.formfill.expire_days",	0);
+          user_pref("browser.helperApps.deleteTempFileOnExit", true);
+          user_pref("browser.newtab.preload", false);
+          user_pref("browser.newtab.url", "about:blank");
+          user_pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr", false);
+          user_pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons", false);
+          user_pref("browser.newtabpage.activity-stream.enabled", false);
+          user_pref("browser.newtabpage.activity-stream.feeds.section.topstories", false);
+          user_pref("browser.newtabpage.activity-stream.feeds.snippets", false);
+          user_pref("browser.newtabpage.directory.ping", "");
+          user_pref("browser.newtabpage.directory.source", "data:text/plain,{}");
+          user_pref("browser.newtabpage.enabled", false);
+          user_pref("browser.newtabpage.enhanced", false);
+          user_pref("browser.pocket.enabled", false);
+          user_pref("browser.search.context.loadInBackground", true);
+          user_pref("browser.search.suggest.enabled", false);
+          user_pref("browser.search.update", false);
+          user_pref("browser.startup.homepage", "{{ firefox_start_page }}");
+          user_pref("browser.tabs.loadBookmarksInBackground", true);
+          user_pref("browser.tabs.loadBookmarksInTabs", true);
+          user_pref("browser.uidensity", 1);
+          user_pref("browser.uitour.enabled", false);
+          user_pref("browser.uitour.enabled", false);
+          user_pref("browser.urlbar.trimURLs", false);
+          user_pref("browser.warnOnQuitShortcut", false);
+          user_pref("clipboard.autocopy", false);
+          user_pref("datareporting.healthreport.service.enabled", false);
+          user_pref("datareporting.healthreport.uploadEnabled", false);
+          user_pref("datareporting.policy.dataSubmissionEnabled", false);
+          user_pref("datareporting.policy.dataSubmissionEnabled", false);
+          user_pref("dom.event.clipboardevents.enabled", false);
+          user_pref("dom.event.contextmenu.enabled", true);
+          user_pref("experiments.enabled", false);
+          user_pref("experiments.manifest.uri", "");
+          user_pref("experiments.supported", false);
+          user_pref("extensions.pocket.enabled", false);
+          user_pref("layout.word_select.eat_space_to_next_word", false);
+          user_pref("mousewheel.min_line_scroll_amount", 25);
+          user_pref("network.allow-experiments", false);
+          user_pref("privacy.trackingprotection.enabled", true);
+          user_pref("privacy.trackingprotection.pbmode.enabled", true);
+          user_pref("signon.rememberSignons", false);
+          user_pref("toolkit.telemetry.archive.enabled", false);
+          user_pref("toolkit.telemetry.enabled", false);
+          user_pref("toolkit.telemetry.unified", false);
 
     - name: Dock configuration
       osx_defaults:
@@ -239,12 +330,21 @@
         - { key: autohide, type: int, value: 1 }
         - { key: magnification, type: int, value: 0 }
         - { key: orientation, type: string, value: bottom }
-        - { key: tilesize, type: float, value: 42 }
+        - { key: tilesize, type: float, value: 54 }
         - { key: minimize-to-application, type: int, value: 1 }
         - { key: mru-spaces, type: int, value: 0 }
         - { key: mineffect, type: string, value: scale }
 
-    - name: Show status bar in Finder.app
+    - name: Screenshots configuration
+      osx_defaults:
+        domain: com.apple.screencapture
+        key: target
+        type: string
+        value: clipboard
+      with_items:
+        - { key: disable-shadow, type: bool, value: true }
+
+    - name: Finder configuration
       osx_defaults:
         domain: com.apple.finder
         key: "{{ item.key }}"
@@ -255,120 +355,5 @@
         - { key: ShowStatusBar, type: bool, value: true }
         - { key: FXEnableExtensionChangeWarning, type: bool, value: false }
 
-    - name: Disable DS_Store
-      osx_defaults:
-        domain: com.apple.desktopservices
-        key: "{{ item.key }}"
-        type: "{{ item.type }}"
-        value: "{{ item.value }}"
-      with_items:
-        - { key: DSDontWriteNetworkStores, type: bool, value: true }
-        - { key: DSDontWriteUSBStores, type: bool, value: true }
-
-    - name: Disable App Downloaded from Internet warning
-      osx_defaults:
-        domain: com.apple.LaunchServices
-        key: LSQuarantine
-        type: bool
-        value: false
-
-    - name: Disable autogather
-      osx_defaults:
-        domain: com.apple.appleseed.FeedbackAssistant
-        key: Autogather
-        type: bool
-        value: true
-
-    - name: Disable crash reporter
-      osx_defaults:
-        domain: com.apple.CrashReporter
-        key: DialogType
-        type: string
-        value: none
-
-    - name: Disable auto-brightness adjustment
-      osx_defaults:
-        domain: com.apple.BezelServices
-        key: dAuto
-        type: bool
-        value: false
-
-    - name: Don't display text input menu
-      osx_defaults:
-        domain: com.apple.TextInputMenu
-        key: visible
-        type: int
-        value: 0
-
-    - name: Screen Capture
-      osx_defaults:
-        domain: com.apple.screencapture
-        key: target
-        type: string
-        value: clipboard
-
-    - name: Update list of available shells
-      blockinfile:
-        path: /private/etc/shells
-        block: "/opt/homebrew/bin/bash"
-      become: true
-
-    - name: Update default shell
-      shell:
-        cmd: chpass -s /opt/homebrew/bin/bash
-      become_user: jpr
-
-#    - name: Custom Firefox about:config settings
-#      copy:
-#        dest: /Users/jpr/Library/Application Support/Firefox/Profiles/gce4f4u6.default-release/user.js
-#        mode: 0644
-#        content: |
-#          user_pref("browser.aboutHomeSnippets.updateUrl", "");
-#          user_pref("browser.compactmode.show", true);
-#          user_pref("browser.discovery.enabled", false);
-#          user_pref("browser.download.useDownloadDir", false);
-#          user_pref("browser.fixup.alternate.enabled", false);
-#          user_pref("browser.formfill.enable", false);
-#          user_pref("browser.formfill.expire_days",	0);
-#          user_pref("browser.helperApps.deleteTempFileOnExit", true);
-#          user_pref("browser.newtab.preload", false);
-#          user_pref("browser.newtab.url", "about:blank");
-#          user_pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr", false);
-#          user_pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons", false);
-#          user_pref("browser.newtabpage.activity-stream.enabled", false);
-#          user_pref("browser.newtabpage.activity-stream.feeds.section.topstories", false);
-#          user_pref("browser.newtabpage.activity-stream.feeds.snippets", false);
-#          user_pref("browser.newtabpage.directory.ping", "");
-#          user_pref("browser.newtabpage.directory.source", "data:text/plain,{}");
-#          user_pref("browser.newtabpage.enabled", false);
-#          user_pref("browser.newtabpage.enhanced", false);
-#          user_pref("browser.pocket.enabled", false);
-#          user_pref("browser.search.context.loadInBackground", true);
-#          user_pref("browser.search.update", false);
-#          user_pref("browser.startup.homepage", "https://start.int.ppn.sh");
-#          user_pref("browser.tabs.loadBookmarksInBackground", true);
-#          user_pref("browser.tabs.loadBookmarksInTabs", true);
-#          user_pref("browser.uidensity", 1);
-#          user_pref("browser.uitour.enabled", false);
-#          user_pref("browser.uitour.enabled", false);
-#          user_pref("browser.urlbar.trimURLs", false);
-#          user_pref("clipboard.autocopy", false);
-#          user_pref("datareporting.healthreport.service.enabled", false);
-#          user_pref("datareporting.healthreport.uploadEnabled", false);
-#          user_pref("datareporting.policy.dataSubmissionEnabled", false);
-#          user_pref("dom.event.clipboardevents.enabled", false);
-#          user_pref("dom.event.contextmenu.enabled", true);
-#          user_pref("experiments.enabled", false);
-#          user_pref("experiments.manifest.uri", "");
-#          user_pref("experiments.supported", false);
-#          user_pref("extensions.pocket.enabled", false);
-#          user_pref("layout.word_select.eat_space_to_next_word", false);
-#          user_pref("mousewheel.min_line_scroll_amount", 45);
-#          user_pref("network.allow-experiments", false);
-#          user_pref("privacy.trackingprotection.enabled", true);
-#          user_pref("privacy.trackingprotection.pbmode.enabled", true);
-#          user_pref("signon.rememberSignons", false);
-#          user_pref("toolkit.telemetry.archive.enabled", false);
-#          user_pref("toolkit.telemetry.enabled", false);
-#          user_pref("toolkit.telemetry.unified", false);
-#
+# Install fzf bindings
+# /opt/homebrew/opt/fzf/install
