@@ -10,27 +10,7 @@ Next, change the default shell to Bash (from zsh, because I'm a traditional old 
 chsh -s /bin/bash
 ```
 
-Next, upgrade pip.
-
-```sh
-pip3 install --user --upgrade pip3
-```
-
 Restart the terminal, and then proceed with the next steps.
-
-## Install Ansible
-
-Install Ansible using the command below.
-
-```sh
-python3 -m pip install --user ansible
-```
-
-You may need to add the below PATH to `.bashrc`, if running `ansible` doesn't work straight away, as Ansible get's installed there.
-
-```sh
-export PATH="/Users/<username>/Library/Python/3.*/bin:$PATH"
-```
 
 ## Install Homebrew
 
@@ -38,10 +18,16 @@ export PATH="/Users/<username>/Library/Python/3.*/bin:$PATH"
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
+## Install Ansible
+
+```sh
+pip3 install ansible --user
+```
+
 ## Install Ansible Galaxy Collections
 
 ```sh
-ansible-galaxy collection install community.general
+ansible-galaxy collection install -r requirements.yml
 ```
 
 ## Optional Tasks
