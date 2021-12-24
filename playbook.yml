@@ -167,6 +167,7 @@
             - click
             - flake8
             - jmespath
+            - pipreqs
             - psutil
             - pylint
         extra_args: --user
