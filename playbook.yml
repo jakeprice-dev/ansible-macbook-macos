@@ -81,6 +81,7 @@
         name:
           - homebrew/cask/android-commandlinetools
           - homebrew/cask/chromium
+          - homebrew/cask/docker
           - homebrew/cask/drawio
           - homebrew/cask/firefox
           - homebrew/cask/hiddenbar
