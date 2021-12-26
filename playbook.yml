@@ -40,6 +40,7 @@
       community.general.homebrew:
         state: latest
         name:
+          - android-platform-tools
           - bash
           - bash-completion
           - bat
