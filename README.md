@@ -2,9 +2,17 @@
 
 ## Preparation
 
-Open up the default Terminal, and type `pip3`. This will then prompt you to install `Command Line Developer Tools`.
+### Install Command Line Tools
 
-Next, change the default shell to Bash (from zsh, because I'm a traditional old thing).
+Open up the default Terminal and install xcode Command Line Developer Tools.
+
+```sh
+xcode-select --install
+```
+
+Next, change the default shell to Bash (personal preference).
+
+### Change Default Shell to Bash
 
 ```sh
 chsh -s /bin/bash
@@ -14,14 +22,18 @@ Restart the terminal, and then proceed with the next steps.
 
 ## Install Homebrew
 
+Install Homebrew with the command below.
+
 ```sh
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
 ## Install Ansible
 
+Install Ansible using Homebrew.
+
 ```sh
-pip3 install ansible --user
+brew install ansible
 ```
 
 ## Install Ansible Galaxy Collections
